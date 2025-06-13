@@ -1,117 +1,262 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mini Discord with IP</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mini Discord Clone</title>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-analytics-compat.js"></script>
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-analytics-compat.js"></script>
 
-  <script src="javascriptReworked.js" defer></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Whitney:wght@400;600&display=swap');
+  
+  * {
+    box-sizing: border-box;
+  }
+  
+  body {
+    margin: 0;
+    background-color: #36393f;
+    font-family: 'Whitney', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #dcddde;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
 
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f5f7fa;
-      margin: 0; padding: 0;
-      display: flex; flex-direction: column; align-items: center;
-      min-height: 100vh;
+  header {
+    background: #2f3136;
+    padding: 12px 20px;
+    font-weight: 600;
+    font-size: 20px;
+    color: white;
+    user-select: none;
+  }
+
+  #chat-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    overflow: hidden;
+  }
+
+  #messageList {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: 10px;
+  }
+
+  .message {
+    display: flex;
+    margin-bottom: 15px;
+    align-items: flex-start;
+  }
+
+  .message-content {
+    background-color: #40444b;
+    padding: 10px 15px;
+    border-radius: 8px;
+    max-width: 70%;
+    position: relative;
+    word-wrap: break-word;
+    font-size: 15px;
+  }
+
+  .message-header {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 3px;
+  }
+
+  .username {
+    font-weight: 600;
+    color: #00b0f4;
+    margin-right: 8px;
+  }
+
+  .timestamp {
+    font-size: 11px;
+    color: #72767d;
+  }
+
+  #input-area {
+    background: #2f3136;
+    padding: 10px 20px;
+    display: flex;
+    border-top: 1px solid #202225;
+  }
+
+  #TypedMessage {
+    flex-grow: 1;
+    background: #40444b;
+    border: none;
+    border-radius: 4px;
+    color: #dcddde;
+    padding: 10px;
+    font-size: 16px;
+    outline: none;
+  }
+
+  #sendBtn {
+    background-color: #5865f2;
+    border: none;
+    color: white;
+    padding: 0 20px;
+    margin-left: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+  }
+
+  #sendBtn:hover {
+    background-color: #4752c4;
+  }
+
+  #messageList::-webkit-scrollbar {
+    width: 8px;
+  }
+  #messageList::-webkit-scrollbar-thumb {
+    background-color: #202225;
+    border-radius: 4px;
+  }
+  #messageList::-webkit-scrollbar-track {
+    background-color: #2f3136;
+  }
+</style>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBNg0E4b1MAKeza_HiFwH7EHxqes57g5mw",
+    authDomain: "mini-1867a.firebaseapp.com",
+    projectId: "mini-1867a",
+    storageBucket: "mini-1867a.firebasestorage.app",
+    messagingSenderId: "996393456029",
+    appId: "1:996393456029:web:614d11d69e411b7adb1f74",
+    measurementId: "G-HCTZRSPDC5"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+
+  const db = firebase.firestore();
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const messageList = document.getElementById("messageList");
+    const input = document.getElementById("TypedMessage");
+    const sendBtn = document.getElementById("sendBtn");
+
+    async function fetchUserIP() {
+      try {
+        const res = await fetch("https://api.ipify.org?format=json");
+        const data = await res.json();
+        return data.ip || "unknown";
+      } catch (e) {
+        console.warn("IP fetch failed:", e);
+        return "unknown";
+      }
     }
 
-    h1 {
-      margin-top: 20px;
-      color: #333;
+    async function addmessagestoscrn() {
+      const message = input.value.trim();
+      if (!message) {
+        alert("Please type a message.");
+        return;
+      }
+      sendBtn.disabled = true;
+      const ip = await fetchUserIP();
+
+      try {
+        await db.collection("messages").add({
+          text: message,
+          ip: ip,
+          username: `User-${ip.split('.').join('')}`, // Username derived from IP but no IP shown
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        input.value = "";
+      } catch (error) {
+        console.error("Error writing message:", error);
+      } finally {
+        sendBtn.disabled = false;
+      }
     }
 
-    #chat-container {
-      width: 90%;
-      max-width: 600px;
-      background: white;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      border-radius: 10px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      height: 500px;
+    function formatTimestamp(timestamp) {
+      if (!timestamp) return '';
+      const date = timestamp.toDate();
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
-    #messageList {
-      flex-grow: 1;
-      overflow-y: auto;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 10px;
-      background: #fafafa;
-      margin-bottom: 15px;
-      font-size: 14px;
-      line-height: 1.4;
+    async function fetchMessages() {
+      try {
+        const snapshot = await db.collection("messages").orderBy("timestamp", "asc").get();
+        messageList.innerHTML = "";
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const div = document.createElement("div");
+          div.className = "message";
+
+          const content = document.createElement("div");
+          content.className = "message-content";
+
+          // header with username and timestamp
+          const header = document.createElement("div");
+          header.className = "message-header";
+
+          const userSpan = document.createElement("span");
+          userSpan.className = "username";
+          userSpan.textContent = data.username || "Unknown";
+
+          const timeSpan = document.createElement("span");
+          timeSpan.className = "timestamp";
+          timeSpan.textContent = formatTimestamp(data.timestamp);
+
+          header.appendChild(userSpan);
+          header.appendChild(timeSpan);
+
+          content.appendChild(header);
+
+          // message text
+          const textSpan = document.createElement("span");
+          textSpan.textContent = data.text || "";
+          content.appendChild(textSpan);
+
+          div.appendChild(content);
+          messageList.appendChild(div);
+        });
+
+        messageList.scrollTop = messageList.scrollHeight;
+      } catch (error) {
+        console.error("Error reading messages:", error);
+      }
     }
 
-    .message {
-      padding: 8px 12px;
-      margin-bottom: 10px;
-      border-radius: 8px;
-      background: #e0e7ff;
-      color: #1e293b;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      word-break: break-word;
-    }
+    sendBtn.addEventListener('click', addmessagestoscrn);
+    input.addEventListener('keypress', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addmessagestoscrn();
+      }
+    });
 
-    .message .ip {
-      display: block;
-      font-size: 10px;
-      color: #64748b;
-      margin-top: 5px;
-      font-style: italic;
-    }
-
-    #input-area {
-      display: flex;
-      gap: 10px;
-    }
-
-    #TypedMessage {
-      flex-grow: 1;
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      outline: none;
-      transition: border-color 0.3s ease;
-    }
-    #TypedMessage:focus {
-      border-color: #6366f1;
-      box-shadow: 0 0 6px #6366f1aa;
-    }
-
-    #sendBtn {
-      background: #6366f1;
-      color: white;
-      border: none;
-      padding: 0 20px;
-      font-size: 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    #sendBtn:hover {
-      background: #4f46e5;
-    }
-  </style>
+    setInterval(fetchMessages, 1000);
+    fetchMessages();
+  });
+</script>
 </head>
 <body>
-
-  <h1>Mini Discord with IP</h1>
+  <header>Mini Discord Clone</header>
   <div id="chat-container">
     <div id="messageList"></div>
     <div id="input-area">
-      <input type="text" id="TypedMessage" placeholder="Type your message here..." />
-      <button id="sendBtn" onclick="addmessagestoscrn()">Send</button>
+      <input id="TypedMessage" type="text" placeholder="Message #general" autocomplete="off" />
+      <button id="sendBtn">Send</button>
     </div>
   </div>
-
 </body>
 </html>
