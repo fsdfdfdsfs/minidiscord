@@ -3,22 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>mini discord</title>
+  <title>Mini Discord</title>
 
-  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-analytics-compat.js"></script>
 
-  <!-- Your JS -->
   <script src="javascriptReworked.js" defer></script>
 </head>
 <body>
   <h1>Mini Discord</h1>
-
   <input type="text" id="TypedMessage" placeholder="Type a message" />
   <input type="submit" value="Submit" onclick="addmessagestoscrn()" />
 
-  <div id="messageList"></div>
+  <div id="messageList" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 5px;"></div>
 </body>
 </html>

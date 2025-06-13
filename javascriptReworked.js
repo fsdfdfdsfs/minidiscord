@@ -1,4 +1,3 @@
-// Your Firebase config object
 const firebaseConfig = {
   apiKey: "AIzaSyBNg0E4b1MAKeza_HiFwH7EHxqes57g5mw",
   authDomain: "mini-1867a.firebaseapp.com",
@@ -15,12 +14,11 @@ firebase.analytics();
 
 const db = firebase.firestore();
 
-let messageHis = [];
+const messageList = document.getElementById("messageList");
+const input = document.getElementById("TypedMessage");
 
 function addmessagestoscrn() {
-  const input = document.getElementById("TypedMessage");
   const message = input.value.trim();
-
   if (!message) {
     alert("Please type a message before submitting.");
     return;
@@ -30,25 +28,27 @@ function addmessagestoscrn() {
     text: message,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   })
-  .then((docRef) => {
-    console.log("Message saved with ID:", docRef.id);
-    messageHis.push(message);
-    input.value = ""; // clear input
-    displayMessages(); // refresh message list
+  .then(() => {
+    input.value = ""; // clear input after sending
   })
   .catch((error) => {
     console.error("Error adding message:", error);
   });
 }
 
-// Optional: display messages from messageHis array in the page
-function displayMessages() {
-  const container = document.getElementById("messageList");
-  container.innerHTML = "";
+// Real-time listener for messages collection, ordered by timestamp
+db.collection("messages")
+  .orderBy("timestamp", "asc")
+  .onSnapshot((snapshot) => {
+    messageList.innerHTML = ""; // Clear current messages
 
-  messageHis.forEach((msg, i) => {
-    const p = document.createElement("p");
-    p.textContent = msg;
-    container.appendChild(p);
+    snapshot.forEach((doc) => {
+      const messageData = doc.data();
+      const p = document.createElement("p");
+      p.textContent = messageData.text || "(no text)";
+      messageList.appendChild(p);
+    });
+
+    // Scroll to bottom so newest messages are visible (optional)
+    messageList.scrollTop = messageList.scrollHeight;
   });
-}
