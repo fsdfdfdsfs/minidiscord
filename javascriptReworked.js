@@ -16,7 +16,7 @@ const db = firebase.firestore();
 const messageList = document.getElementById("messageList");
 const input = document.getElementById("TypedMessage");
 
-// Add a message to Firestore
+// Send a message
 function addmessagestoscrn() {
   const message = input.value.trim();
   if (!message) {
@@ -36,20 +36,29 @@ function addmessagestoscrn() {
   });
 }
 
-// Listen in real-time for new messages and update UI
-db.collection("messages")
-  .orderBy("timestamp", "asc")
-  .onSnapshot(snapshot => {
-    messageList.innerHTML = ""; // clear existing
-
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const div = document.createElement("div");
-      div.classList.add("message");
-      div.textContent = data.text || "(no text)";
-      messageList.appendChild(div);
+// Poll Firestore every second to get all messages and display
+function fetchMessages() {
+  db.collection("messages")
+    .orderBy("timestamp", "asc")
+    .get()
+    .then(snapshot => {
+      messageList.innerHTML = "";
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const div = document.createElement("div");
+        div.classList.add("message");
+        div.textContent = data.text || "(no text)";
+        messageList.appendChild(div);
+      });
+      messageList.scrollTop = messageList.scrollHeight;
+    })
+    .catch(error => {
+      console.error("Error fetching messages:", error);
     });
+}
 
-    // Scroll down so newest message is visible
-    messageList.scrollTop = messageList.scrollHeight;
-  });
+// Start polling every 1 second
+setInterval(fetchMessages, 1000);
+
+// Optionally fetch messages once immediately on load
+fetchMessages();
