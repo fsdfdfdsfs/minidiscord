@@ -8,7 +8,6 @@ const firebaseConfig = {
   measurementId: "G-HCTZRSPDC5"
 };
 
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 firebase.analytics();
 
@@ -17,10 +16,11 @@ const db = firebase.firestore();
 const messageList = document.getElementById("messageList");
 const input = document.getElementById("TypedMessage");
 
+// Add a message to Firestore
 function addmessagestoscrn() {
   const message = input.value.trim();
   if (!message) {
-    alert("Please type a message before submitting.");
+    alert("Please type a message.");
     return;
   }
 
@@ -29,26 +29,27 @@ function addmessagestoscrn() {
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   })
   .then(() => {
-    input.value = ""; // clear input after sending
+    input.value = "";
   })
   .catch((error) => {
     console.error("Error adding message:", error);
   });
 }
 
-// Real-time listener for messages collection, ordered by timestamp
+// Listen in real-time for new messages and update UI
 db.collection("messages")
   .orderBy("timestamp", "asc")
-  .onSnapshot((snapshot) => {
-    messageList.innerHTML = ""; // Clear current messages
+  .onSnapshot(snapshot => {
+    messageList.innerHTML = ""; // clear existing
 
-    snapshot.forEach((doc) => {
-      const messageData = doc.data();
-      const p = document.createElement("p");
-      p.textContent = messageData.text || "(no text)";
-      messageList.appendChild(p);
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const div = document.createElement("div");
+      div.classList.add("message");
+      div.textContent = data.text || "(no text)";
+      messageList.appendChild(div);
     });
 
-    // Scroll to bottom so newest messages are visible (optional)
+    // Scroll down so newest message is visible
     messageList.scrollTop = messageList.scrollHeight;
   });
