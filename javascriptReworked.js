@@ -8,6 +8,7 @@ const firebaseConfig = {
   measurementId: "G-HCTZRSPDC5"
 };
 
+// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 firebase.analytics();
 
@@ -16,7 +17,7 @@ const db = firebase.firestore();
 const messageList = document.getElementById("messageList");
 const input = document.getElementById("TypedMessage");
 
-// Send a message
+// Send a message to Firestore
 function addmessagestoscrn() {
   const message = input.value.trim();
   if (!message) {
@@ -31,34 +32,34 @@ function addmessagestoscrn() {
   .then(() => {
     input.value = "";
   })
-  .catch((error) => {
+  .catch(error => {
     console.error("Error adding message:", error);
   });
 }
 
-// Poll Firestore every second to get all messages and display
+// Fetch all messages from Firestore, ordered by timestamp ascending
 function fetchMessages() {
   db.collection("messages")
     .orderBy("timestamp", "asc")
     .get()
     .then(snapshot => {
-      messageList.innerHTML = "";
+      messageList.innerHTML = "";  // Clear existing messages
       snapshot.forEach(doc => {
         const data = doc.data();
         const div = document.createElement("div");
-        div.classList.add("message");
+        div.className = "message";
         div.textContent = data.text || "(no text)";
         messageList.appendChild(div);
       });
-      messageList.scrollTop = messageList.scrollHeight;
+      messageList.scrollTop = messageList.scrollHeight; // Scroll to bottom
     })
     .catch(error => {
       console.error("Error fetching messages:", error);
     });
 }
 
-// Start polling every 1 second
+// Poll Firestore every 1 second for all messages
 setInterval(fetchMessages, 1000);
 
-// Optionally fetch messages once immediately on load
+// Also fetch once immediately on load
 fetchMessages();
