@@ -8,7 +8,6 @@ const firebaseConfig = {
   measurementId: "G-HCTZRSPDC5"
 };
 
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 firebase.analytics();
 
@@ -16,8 +15,21 @@ const db = firebase.firestore();
 
 const messageList = document.getElementById("messageList");
 const input = document.getElementById("TypedMessage");
+let userIP = "unknown";
 
-// Send a message to Firestore
+// Get user public IP via free API once at start
+async function fetchUserIP() {
+  try {
+    const response = await fetch("https://api.ipify.org?format=json");
+    const data = await response.json();
+    userIP = data.ip || "unknown";
+    console.log("User IP detected:", userIP);
+  } catch (error) {
+    console.warn("Failed to get IP:", error);
+  }
+}
+
+// Add message with IP to Firestore
 function addmessagestoscrn() {
   const message = input.value.trim();
   if (!message) {
@@ -27,6 +39,7 @@ function addmessagestoscrn() {
 
   db.collection("messages").add({
     text: message,
+    ip: userIP,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   })
   .then(() => {
@@ -37,29 +50,42 @@ function addmessagestoscrn() {
   });
 }
 
-// Fetch all messages from Firestore, ordered by timestamp ascending
+// Fetch all messages every second and display
 function fetchMessages() {
   db.collection("messages")
     .orderBy("timestamp", "asc")
     .get()
     .then(snapshot => {
-      messageList.innerHTML = "";  // Clear existing messages
+      messageList.innerHTML = "";
       snapshot.forEach(doc => {
         const data = doc.data();
         const div = document.createElement("div");
         div.className = "message";
-        div.textContent = data.text || "(no text)";
+
+        const textSpan = document.createElement("span");
+        textSpan.textContent = data.text || "(no text)";
+        div.appendChild(textSpan);
+
+        if (data.ip) {
+          const ipSpan = document.createElement("span");
+          ipSpan.className = "ip";
+          ipSpan.textContent = `IP: ${data.ip}`;
+          div.appendChild(ipSpan);
+        }
+
         messageList.appendChild(div);
       });
-      messageList.scrollTop = messageList.scrollHeight; // Scroll to bottom
+
+      // Scroll chat to bottom so latest messages show
+      messageList.scrollTop = messageList.scrollHeight;
     })
     .catch(error => {
       console.error("Error fetching messages:", error);
     });
 }
 
-// Poll Firestore every 1 second for all messages
+// Start polling every 1 second
 setInterval(fetchMessages, 1000);
 
-// Also fetch once immediately on load
-fetchMessages();
+// Fetch once on page load
+fetchUserIP().then(fetchMessages);
